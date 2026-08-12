@@ -30,7 +30,7 @@ Hotkeys:
 ### One command
 
 ```bash
-git clone https://github.com/<you>/monitor-window-memory.git
+git clone https://github.com/randytayler/monitor-window-memory.git
 cd monitor-window-memory
 ./install.sh
 ```
