@@ -25,9 +25,11 @@ Hotkeys:
 | `⌥⌘S` | Save the current layout for this monitor setup now |
 | `⌥⌘R` | Restore the saved layout for this monitor setup now |
 
-## Install
+---
 
-### One command
+## Setup
+
+### 1. Install
 
 ```bash
 git clone https://github.com/randytayler/monitor-window-memory.git
@@ -40,25 +42,53 @@ The installer will:
 2. Copy the config into `~/.hammerspoon/init.lua` (backing up any existing one).
 3. Launch Hammerspoon and open the Accessibility settings pane.
 
-### Manual
+> **No `git`, or grabbed the ZIP instead of cloning?** Run `bash install.sh` —
+> it works even when the file isn't marked executable.
 
-1. Install Hammerspoon: `brew install --cask hammerspoon` (or from
-   [hammerspoon.org](https://www.hammerspoon.org/)).
-2. Copy [`init.lua`](init.lua) to `~/.hammerspoon/init.lua`.
-3. Launch Hammerspoon.
+**Prefer to do it by hand?** Install Hammerspoon
+(`brew install --cask hammerspoon`), copy [`init.lua`](init.lua) to
+`~/.hammerspoon/init.lua`, and launch Hammerspoon.
 
-## The one manual step: Accessibility permission
+### 2. Grant Accessibility permission
 
 macOS won't let **any** app move windows until you allow it, and this can't be
-scripted (it's an OS security setting):
+scripted (it's an OS security setting). In **System Settings ▸ Privacy &
+Security ▸ Accessibility**, turn on the switch next to **Hammerspoon**:
 
-**System Settings ▸ Privacy & Security ▸ Accessibility → enable Hammerspoon**
+![System Settings Accessibility pane with the Hammerspoon toggle switched on](images/01-accessibility.png)
 
-Then: Hammerspoon menubar icon ▸ **Reload Config**.
+Then click the Hammerspoon menubar icon ▸ **Reload Config**.
 
 > Saving your layout works without this. *Restoring* windows needs it.
 
-## Using it
+### 3. Find the menubar icon
+
+Look for the 🖥 icon in your menubar. The number is how many displays are
+connected right now:
+
+<img src="images/02-menubar-icon.png" alt="The Monitor Window Memory menubar icon showing one connected display" width="120">
+
+> **Don't see it?** On MacBooks with a notch, a crowded menubar can hide icons
+> behind the notch. See [Troubleshooting](#troubleshooting).
+
+### 4. Use the menu
+
+Click the icon for the menu. It shows the current arrangement, whether a layout
+is saved, and every arrangement it remembers — plus manual **Save** / **Restore**:
+
+![The menubar dropdown showing saved layout status, Save/Restore actions, and the list of remembered arrangements](images/03-menu.png)
+
+### 5. Confirm it's set to launch at login
+
+The installer turns this on for you. To check, open **Hammerspoon ▸
+Preferences** — "Launch Hammerspoon at login" should be ticked and Accessibility
+should read *enabled*:
+
+![Hammerspoon Preferences with Launch at login checked and Accessibility enabled](images/04-preferences.png)
+
+---
+
+## Using it day to day
 
 1. With all your monitors connected, arrange windows how you like them. Leave
    them ~6 seconds — the layout auto-saves for that arrangement.
@@ -68,12 +98,37 @@ Then: Hammerspoon menubar icon ▸ **Reload Config**.
 The first reconnect after installing may have nothing to restore yet — it needs
 to see (and save) your good multi-monitor layout at least once first.
 
-## Heads up if you already use Hammerspoon
+---
+
+## Troubleshooting
+
+**Can't see the 🖥 menubar icon.** On notch MacBooks, macOS hides overflow
+menubar icons behind the notch when the bar is crowded — so a busy laptop-only
+menubar can swallow it. Fixes:
+
+- Quit a menubar app or two to free up space, and it reappears.
+- Hold **⌘** and drag menubar icons to rearrange them out from behind the notch.
+- Install a free menubar manager like
+  [Ice](https://github.com/jordanbaird/Ice) (`brew install --cask jordanbaird-ice`)
+  so overflow icons are never hidden again.
+
+**Windows restore to *almost* the right spot.** macOS is still settling the
+displays when the first restore fires. Increase the retry delays — see
+[Tuning](#tuning).
+
+**Nothing restores on reconnect.** The arrangement has to be seen and saved at
+least once first. Set your windows up the way you want with the monitors
+connected, wait a few seconds, and it'll remember from then on.
+
+---
+
+## If you already use Hammerspoon
 
 This ships as a whole `init.lua`, so the installer **replaces** your existing
-config (after backing it up). If you already have a Hammerspoon setup you want
-to keep, don't use `install.sh` — instead copy the body of [`init.lua`](init.lua)
-into your own config, or package it as a Spoon.
+config (after backing it up to `~/.hammerspoon/init.lua.backup-<timestamp>`). If
+you already have a Hammerspoon setup you want to keep, don't use `install.sh` —
+instead copy the body of [`init.lua`](init.lua) into your own config, or package
+it as a Spoon.
 
 ## Tuning
 
