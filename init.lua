@@ -6,9 +6,9 @@
 
   How it works:
     * Each unique set of connected screens gets a "fingerprint".
-    * Once windows have sat still for STABLE_SECONDS on a given fingerprint,
-      that layout is saved as the known-good layout for that arrangement
-      (persisted to disk, so it survives restarts / logouts).
+    * You save the current window layout for an arrangement explicitly, with
+      ⌥⌘S (or the menubar "Save layout now"). It's persisted to disk so it
+      survives restarts / logouts. Nothing is saved automatically.
     * When the screen setup changes, if we have a saved layout for the new
       fingerprint, we restore it -- with a few retries to beat macOS's own
       re-layout that fires right after a display connects.
@@ -28,8 +28,6 @@ require("hs.ipc")   -- enables the `hs` command-line tool
 -- ---------------------------------------------------------------------------
 -- Tunables
 -- ---------------------------------------------------------------------------
-local STABLE_SECONDS   = 6      -- how long windows must sit still before we save
-local SAVE_POLL        = 4      -- how often (s) we check whether to snapshot
 local RESTORE_DELAYS   = { 1.0, 2.5, 4.5 } -- retry restore at these delays (s) after a change
 local SETTINGS_KEY     = "monitorWindowMemory.layouts"
 
@@ -38,7 +36,6 @@ local SETTINGS_KEY     = "monitorWindowMemory.layouts"
 -- ---------------------------------------------------------------------------
 -- layouts[fingerprint] = { entries = { {id, app, title, frame={x,y,w,h}}, ... } }
 local layouts          = hs.settings.get(SETTINGS_KEY) or {}
-local lastChangeTime   = os.time()
 local currentFingerprint = nil
 local menu             = hs.menubar.new()
 
@@ -77,12 +74,11 @@ end
 local function manageableWindows()
 	local out = {}
 	for _, win in ipairs(hs.window.allWindows()) do
-		if win:isStandard()
-			and win:isVisible()
-			and not win:isMinimized()
-			and win:frame().w > 0
-			and win:frame().h > 0 then
-			out[#out + 1] = win
+		if win:isStandard() and win:isVisible() and not win:isMinimized() then
+			local f = win:frame()
+			if f.w > 0 and f.h > 0 then
+				out[#out + 1] = win
+			end
 		end
 	end
 	return out
@@ -235,21 +231,9 @@ local function updateMenu()
 end
 
 -- ---------------------------------------------------------------------------
--- Periodic saver: only snapshots once the arrangement has been stable a while,
--- so we never capture the "everything squished onto the laptop" transient.
--- ---------------------------------------------------------------------------
-M.saveTimer = hs.timer.new(SAVE_POLL, function()
-	if os.time() - lastChangeTime >= STABLE_SECONDS then
-		local before = layouts[currentFingerprint or ""] ~= nil
-		saveLayout(nil)   -- quiet periodic save
-		if not before then updateMenu() end  -- flip "no layout saved" indicator
-	end
-end)
-M.saveTimer:start()
-
--- ---------------------------------------------------------------------------
 -- Screen watcher: on any arrangement change, restore the new arrangement's
--- saved layout (with retries), and reset the stability clock.
+-- saved layout (with retries). Layouts are only ever saved on demand (⌥⌘S or
+-- the menubar), so there is no background work here.
 -- ---------------------------------------------------------------------------
 M.screenWatcher = hs.screen.watcher.new(function()
 	local fp = fingerprint()
@@ -257,7 +241,6 @@ M.screenWatcher = hs.screen.watcher.new(function()
 		return   -- geometry re-report with no real change; ignore
 	end
 	currentFingerprint = fp
-	lastChangeTime = os.time()
 	hs.printf("[WindowMemory] screen change detected; new arrangement")
 	updateMenu()
 

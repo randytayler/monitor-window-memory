@@ -11,8 +11,9 @@ screen — and reconnecting doesn't put them back.
 
 - Fingerprints each set of connected screens (e.g. "laptop only" vs
   "laptop + 2 externals").
-- Once your windows sit still for a few seconds, it quietly saves that layout
-  for the current arrangement (persisted to disk, survives reboots).
+- You save a layout when you want one (⌥⌘S or the menubar) — it's stored for
+  the current arrangement and persisted to disk (survives reboots). Nothing is
+  saved automatically and there's no background polling.
 - When you change monitors, it detects the arrangement and restores the saved
   layout — retrying a few times to beat macOS's own reshuffle.
 - A menubar readout (🖥 + screen count) shows the active arrangement and lets
@@ -90,13 +91,18 @@ should read *enabled*:
 
 ## Using it day to day
 
-1. With all your monitors connected, arrange windows how you like them. Leave
-   them ~6 seconds — the layout auto-saves for that arrangement.
-2. Disconnect. Windows collapse onto the laptop; that layout gets saved too.
-3. Reconnect. Your windows snap back to where they were.
+1. With all your monitors connected, arrange windows how you like them, then
+   press **⌥⌘S** (or menubar ▸ **Save layout now**) to remember that
+   arrangement.
+2. Disconnect your externals, arrange the laptop-only windows how you like, and
+   press **⌥⌘S** again to save that arrangement too.
+3. From then on, connecting or disconnecting monitors auto-restores the saved
+   layout for whatever arrangement you switch to.
 
-The first reconnect after installing may have nothing to restore yet — it needs
-to see (and save) your good multi-monitor layout at least once first.
+**Save each arrangement once.** Nothing is saved automatically — a layout is
+only stored when you explicitly save it, so the tool does no background work.
+The menubar icon shows a `•` next to arrangements that don't have a saved layout
+yet.
 
 ---
 
@@ -116,9 +122,9 @@ menubar can swallow it. Fixes:
 displays when the first restore fires. Increase the retry delays — see
 [Tuning](#tuning).
 
-**Nothing restores on reconnect.** The arrangement has to be seen and saved at
-least once first. Set your windows up the way you want with the monitors
-connected, wait a few seconds, and it'll remember from then on.
+**Nothing restores on reconnect.** The arrangement has to be saved at least once
+first. Set your windows up the way you want with the monitors connected, press
+**⌥⌘S**, and it'll restore that arrangement from then on.
 
 ---
 
@@ -134,6 +140,5 @@ it as a Spoon.
 
 Open [`init.lua`](init.lua) and edit the values near the top:
 
-- `STABLE_SECONDS` — how long windows must sit still before a layout is saved.
 - `RESTORE_DELAYS` — when (seconds after a monitor change) restore is retried.
   If restores land slightly off, add more / later delays here.
