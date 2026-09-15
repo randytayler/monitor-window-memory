@@ -162,6 +162,17 @@ local function restoreLayout(reason)
 	return true
 end
 
+-- Restore several times over a few seconds. macOS keeps re-laying-out windows
+-- for a second or two after a display connects or the machine wakes, so a
+-- single attempt often gets stomped.
+local function scheduleRestore(reason)
+	for _, delay in ipairs(RESTORE_DELAYS) do
+		hs.timer.doAfter(delay, function()
+			restoreLayout(string.format("%s +%.1fs", reason, delay))
+		end)
+	end
+end
+
 -- ---------------------------------------------------------------------------
 -- Menubar readout: shows the current arrangement and its saved-layout status,
 -- with a dropdown listing every arrangement we know about.
@@ -243,16 +254,29 @@ M.screenWatcher = hs.screen.watcher.new(function()
 	currentFingerprint = fp
 	hs.printf("[WindowMemory] screen change detected; new arrangement")
 	updateMenu()
-
-	-- Try to restore a few times; macOS keeps re-laying-out for a second or two
-	-- after a display connects, so a single attempt often gets stomped.
-	for _, delay in ipairs(RESTORE_DELAYS) do
-		hs.timer.doAfter(delay, function()
-			restoreLayout(string.format("+%.1fs after change", delay))
-		end)
-	end
+	scheduleRestore("screen change")
 end)
 M.screenWatcher:start()
+
+-- ---------------------------------------------------------------------------
+-- Wake watcher: waking from sleep usually reconnects the SAME monitor
+-- arrangement, so the screen watcher above sees no change and won't fire -- yet
+-- macOS has already shuffled windows across screens during sleep. Restore on
+-- wake / unlock to put them back. Also refresh currentFingerprint in case the
+-- arrangement really did change while asleep.
+-- ---------------------------------------------------------------------------
+M.wakeWatcher = hs.caffeinate.watcher.new(function(event)
+	local w = hs.caffeinate.watcher
+	if event == w.systemDidWake
+		or event == w.screensDidWake
+		or event == w.screensDidUnlock then
+		currentFingerprint = fingerprint()
+		updateMenu()
+		hs.printf("[WindowMemory] wake/unlock detected; restoring")
+		scheduleRestore("wake")
+	end
+end)
+M.wakeWatcher:start()
 
 -- ---------------------------------------------------------------------------
 -- Manual hotkeys

@@ -14,8 +14,9 @@ screen — and reconnecting doesn't put them back.
 - You save a layout when you want one (⌥⌘S or the menubar) — it's stored for
   the current arrangement and persisted to disk (survives reboots). Nothing is
   saved automatically and there's no background polling.
-- When you change monitors, it detects the arrangement and restores the saved
-  layout — retrying a few times to beat macOS's own reshuffle.
+- When you connect/disconnect monitors — or wake the Mac from sleep — it
+  restores the saved layout for the current arrangement, retrying a few times to
+  beat macOS's own reshuffle.
 - A menubar readout (🖥 + screen count) shows the active arrangement and lets
   you save / restore / forget layouts by hand.
 
@@ -96,8 +97,8 @@ should read *enabled*:
    arrangement.
 2. Disconnect your externals, arrange the laptop-only windows how you like, and
    press **⌥⌘S** again to save that arrangement too.
-3. From then on, connecting or disconnecting monitors auto-restores the saved
-   layout for whatever arrangement you switch to.
+3. From then on, connecting or disconnecting monitors — or waking the Mac from
+   sleep — auto-restores the saved layout for whatever arrangement is active.
 
 **Save each arrangement once.** Nothing is saved automatically — a layout is
 only stored when you explicitly save it, so the tool does no background work.
