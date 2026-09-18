@@ -107,6 +107,28 @@ yet.
 
 ---
 
+## How windows are matched
+
+Restoring means pairing each saved window with a live one. It happens in two
+passes:
+
+1. **Exact window ID** — reliable for most apps (Slack, Terminal, Notes, …).
+2. **Nearest position, per app** — for apps like browsers that recycle their
+   window IDs *and* rewrite their titles as tabs change, so neither ID nor title
+   can be trusted. Matching by proximity keeps an already-correctly-placed window
+   where it is, instead of swapping it with another window of the same app.
+
+The arrangement **fingerprint** is only the set of connected *screens* — your
+tabs and window titles don't affect it, so changing tabs never changes which
+arrangement you're in.
+
+> **Limitation:** if macOS has collapsed several windows of the *same app* onto
+> one screen (as it sometimes does on wake), there's no reliable way to tell
+> those windows apart, so which one lands on which screen isn't guaranteed in
+> that particular case.
+
+---
+
 ## Troubleshooting
 
 **Can't see the 🖥 menubar icon.** On notch MacBooks, macOS hides overflow

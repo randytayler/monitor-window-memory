@@ -110,23 +110,25 @@ local function saveLayout(reason)
 	end
 end
 
--- Score how well a saved entry matches a live window (higher = better).
-local function matchScore(entry, win)
-	local app = win:application()
-	local bundle = app and app:bundleID() or nil
-	if entry.id and entry.id == win:id() then
-		return 100                       -- same window, best possible
-	end
-	if entry.app and bundle and entry.app == bundle then
-		if entry.title ~= "" and entry.title == (win:title() or "") then
-			return 50                    -- same app + same title
-		end
-		return 10                        -- same app, title drifted
-	end
-	return 0
+-- Squared distance between the centres of a saved frame and a live window.
+local function centerDist2(entry, f)
+	local dx = (f.x + f.w / 2) - (entry.frame.x + entry.frame.w / 2)
+	local dy = (f.y + f.h / 2) - (entry.frame.y + entry.frame.h / 2)
+	return dx * dx + dy * dy
 end
 
 -- Restore saved frames for the current fingerprint.
+--
+-- Matching a saved entry to a live window is done in two passes, because some
+-- apps (browsers especially) recycle their window IDs *and* rewrite their
+-- titles as tabs change, so neither is a reliable identity across sleep:
+--
+--   1. Exact window-ID match -- pins well-behaved apps (Slack, Terminal, Notes,
+--      etc.) that keep stable IDs.
+--   2. Nearest current position, within the same app -- for the churn-y apps.
+--      Matching by proximity means a window that is ALREADY in the right place
+--      stays put (distance 0 wins) instead of being cross-assigned to another
+--      of the app's windows, which is what caused windows to swap screens.
 local function restoreLayout(reason)
 	local fp = fingerprint()
 	local saved = layouts[fp]
@@ -135,29 +137,61 @@ local function restoreLayout(reason)
 	end
 
 	local wins = manageableWindows()
-	local usedWin = {}
+	local usedWin = {}          -- win:id() -> true
+	local assign = {}           -- saved entry index -> window
 
-	-- For each saved entry, claim the best unused live window.
-	for _, entry in ipairs(saved.entries) do
-		local best, bestScore = nil, 0
-		for _, win in ipairs(wins) do
-			if not usedWin[win:id()] then
-				local s = matchScore(entry, win)
-				if s > bestScore then
-					best, bestScore = win, s
+	-- Pass 1: exact window-ID match.
+	for i, entry in ipairs(saved.entries) do
+		if entry.id then
+			for _, win in ipairs(wins) do
+				if not usedWin[win:id()] and win:id() == entry.id then
+					assign[i] = win
+					usedWin[win:id()] = true
+					break
 				end
 			end
 		end
-		if best and bestScore > 0 then
-			usedWin[best:id()] = true
-			best:setFrame(hs.geometry.rect(
+	end
+
+	-- Pass 2: for still-unmatched entries, pair with same-app windows by
+	-- nearest position. Build every candidate pair, then greedily take the
+	-- closest pairs first so each window lands in the slot it's already nearest.
+	local candidates = {}
+	for i, entry in ipairs(saved.entries) do
+		if not assign[i] and entry.app then
+			for _, win in ipairs(wins) do
+				if not usedWin[win:id()] then
+					local app = win:application()
+					if app and app:bundleID() == entry.app then
+						candidates[#candidates + 1] =
+							{ i = i, win = win, d = centerDist2(entry, win:frame()) }
+					end
+				end
+			end
+		end
+	end
+	table.sort(candidates, function(a, b) return a.d < b.d end)
+	for _, c in ipairs(candidates) do
+		if not assign[c.i] and not usedWin[c.win:id()] then
+			assign[c.i] = c.win
+			usedWin[c.win:id()] = true
+		end
+	end
+
+	-- Apply.
+	local applied = 0
+	for i, entry in ipairs(saved.entries) do
+		local win = assign[i]
+		if win then
+			win:setFrame(hs.geometry.rect(
 				entry.frame.x, entry.frame.y, entry.frame.w, entry.frame.h), 0)
+			applied = applied + 1
 		end
 	end
 
 	if reason then
-		hs.printf("[WindowMemory] restored layout for %d entries (%s)",
-			#saved.entries, reason)
+		hs.printf("[WindowMemory] restored %d/%d windows (%s)",
+			applied, #saved.entries, reason)
 	end
 	return true
 end
